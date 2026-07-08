@@ -153,6 +153,7 @@
 
     <div class="view" id="view-search"><div class="pad"><nostr-search></nostr-search></div></div>
     <div class="view" id="view-notifications"><div class="pad"><nostr-notifications></nostr-notifications></div></div>
+    <div class="view" id="view-wallet"><div class="pad"><nostr-wallet></nostr-wallet></div></div>
     <div class="view" id="view-me"><div class="pad" id="me-pad"><div class="quiet">Log in to see your profile.</div></div></div>
     <div class="view" id="view-thread"><div class="pad"><nostr-thread id="thread"></nostr-thread></div></div>
     <div class="view" id="view-person">
@@ -199,6 +200,7 @@
     globalThis.__nostrClientPool = withCache(withVerify(new Pool()))
   }
   import('https://nostr-client.github.io/reactions/reactions.js')
+  await import('https://nostr-client.github.io/wallet/wallet.js') // ₿ under the blue sky
   await Promise.all([
     'login/login.js', 'composer/composer.js', 'feed/feed.js', 'thread/thread.js',
     'notifications/notifications.js', 'search/search.js', 'contacts/contacts.js',
