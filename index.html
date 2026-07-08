@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='85'>🦋</text></svg>">
+<meta property="og:title" content="skyline">
+<meta property="og:description" content="A bluesky-flavored nostr client — same parts, different sky. One buildless HTML file.">
+<meta property="og:url" content="https://nostr-client.github.io/skyline/">
+<meta property="og:image" content="https://nostr-client.github.io/skyline/og.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="nostr-client">
+<meta name="twitter:card" content="summary_large_image">
+<title>skyline</title>
+<meta name="description" content="A bluesky-flavored nostr client built from nostr-client parts.">
+<link rel="stylesheet" href="https://nostr-client.github.io/theme/theme.css">
+<style>
+  :root {
+    /* the sky palette */
+    --nc-bg: #ffffff;
+    --nc-surface: #ffffff;
+    --nc-inset: #f1f3f5;
+    --nc-ink: #0b0f14;
+    --nc-soft: #42576c;
+    --nc-faint: #7a8fa6;
+    --nc-line: #d4dbe2;
+    --nc-accent: #1083fe;
+    --nc-accent-ink: #ffffff;
+    --nc-accent-soft: #e7f1ff;
+    --nc-radius: 16px;
+    --nc-radius-sm: 10px;
+    --nc-shadow: none;
+    --nc-shadow-pop: 0 8px 32px rgb(11 15 20 / 12%);
+    font-size: 15px;
+  }
+  body { margin: 0; }
+  .app { display: grid; grid-template-columns: 15rem 600px minmax(0, 20rem);
+    justify-content: center; gap: 0 1.6rem; min-height: 100vh; }
+
+  /* ---- left sidebar */
+  .side { position: sticky; top: 0; height: 100vh; box-sizing: border-box;
+    padding: .8rem .4rem .8rem 0; display: flex; flex-direction: column; gap: .2rem; }
+  .logo { font-size: 1.7rem; padding: .5rem .9rem .9rem; text-decoration: none; }
+  .side nav { display: flex; flex-direction: column; flex: 1; gap: .1rem; }
+  .side nav button { font: inherit; font-size: 1.15rem; display: flex; align-items: center;
+    gap: .9rem; padding: .6rem .9rem; border: none; background: none; color: var(--nc-ink);
+    border-radius: 999px; cursor: pointer; text-align: left; }
+  .side nav button:hover { background: var(--nc-inset); }
+  .side nav button.active { font-weight: 700; }
+  .side nav button svg { width: 1.5em; height: 1.5em; flex: none; }
+  .side nav button.active svg { stroke-width: 2.6; }
+  .newpost { font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    background: var(--nc-accent); color: #fff; border: none; border-radius: 999px;
+    padding: .75em 0; margin: .8rem .9rem 1rem 0; }
+  .newpost:hover { filter: brightness(1.06); }
+  .side .me { padding: .4rem .9rem .4rem 0; }
+
+  /* ---- center column */
+  .center { border-left: 1px solid var(--nc-line); border-right: 1px solid var(--nc-line);
+    min-height: 100vh; }
+  .tabs { position: sticky; top: 0; z-index: 6; display: flex;
+    background: rgb(255 255 255 / 88%); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--nc-line); }
+  .tabs button { font: inherit; font-size: 1rem; flex: 1; padding: 1rem 0 .8rem;
+    border: none; background: none; color: var(--nc-soft); cursor: pointer; position: relative; }
+  .tabs button:hover { background: var(--nc-inset); }
+  .tabs button.active { color: var(--nc-ink); font-weight: 700; }
+  .tabs button.active::after { content: ''; position: absolute; left: 50%; bottom: 0;
+    transform: translateX(-50%); width: 3.6rem; height: 3px; border-radius: 3px 3px 0 0;
+    background: var(--nc-accent); }
+  .viewbar { position: sticky; top: 0; z-index: 6; display: flex; align-items: center;
+    gap: .8rem; padding: .8rem 1rem;
+    background: rgb(255 255 255 / 88%); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--nc-line); font-weight: 700; font-size: 1.1rem; }
+  .viewbar .back { font: inherit; border: none; background: none; cursor: pointer;
+    font-size: 1.2rem; color: var(--nc-ink); padding: 0 .2rem; border-radius: 999px; }
+  .viewbar .back:hover { background: var(--nc-inset); }
+  .view { display: none; } .view.active { display: block; }
+  .pad { padding: 1rem; }
+  .prompt { display: flex; gap: .8rem; align-items: center; padding: .9rem 1rem;
+    border-bottom: 1px solid var(--nc-line); cursor: text; }
+  .prompt .fake { color: var(--nc-faint); flex: 1; }
+  .prompt .btn { background: var(--nc-accent); color: #fff; font-weight: 700;
+    border: none; border-radius: 999px; padding: .45em 1.2em; font-size: .95rem; }
+  #composer-wrap { display: none; border-bottom: 1px solid var(--nc-line); padding: .8rem 1rem; }
+  #composer-wrap.open { display: block; }
+  nostr-feed[flush] { display: block; }
+  .quiet { color: var(--nc-soft); padding: 2.4rem 1rem; text-align: center; }
+
+  /* ---- right rail */
+  .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box;
+    padding: .8rem 0; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .railcard { border: 1px solid var(--nc-line); border-radius: var(--nc-radius);
+    padding: .9rem 1.1rem; }
+  .railcard h3 { margin: 0 0 .6rem; font-size: 1rem; }
+  .trend { display: block; padding: .45rem 0; text-decoration: none; }
+  .trend .t { font-weight: 700; color: var(--nc-ink); }
+  .trend .c { font-size: .82rem; color: var(--nc-faint); display: block; }
+  .foot { font-size: .75rem; color: var(--nc-faint); padding: 0 .2rem; }
+  .foot a { color: inherit; }
+
+  /* ---- mobile */
+  .bottombar { display: none; }
+  @media (max-width: 1100px) { .app { grid-template-columns: 15rem minmax(0, 600px); } .rail { display: none; } }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .center { border: none; }
+    .bottombar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+      background: rgb(255 255 255 / 94%); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--nc-line); justify-content: space-around; padding: .35rem 0 .6rem; }
+    .bottombar button { font: inherit; border: none; background: none; color: var(--nc-ink);
+      padding: .4rem .9rem; cursor: pointer; border-radius: 999px; }
+    .bottombar button svg { width: 1.6em; height: 1.6em; }
+    .bottombar button.active { color: var(--nc-accent); }
+    body { padding-bottom: 4.2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="logo" href="https://github.com/nostr-client/skyline" title="skyline">🦋</a>
+    <nav id="nav">
+      <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>Home</button>
+      <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>Search</button>
+      <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Notifications</button>
+      <button data-view="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Profile</button>
+    </nav>
+    <button class="newpost" id="newpost">New Post</button>
+    <div class="me"><nostr-login></nostr-login></div>
+  </aside>
+
+  <main class="center">
+    <div class="tabs" id="tabs">
+      <button data-mode="following">Following</button>
+      <button data-mode="discover" class="active">Discover</button>
+    </div>
+    <div class="viewbar" id="viewbar" hidden>
+      <button class="back" id="back">←</button><span id="viewtitle"></span>
+    </div>
+
+    <div class="view active" id="view-home">
+      <div class="prompt" id="prompt">
+        <span class="fake">What's up?</span><button class="btn">Post</button>
+      </div>
+      <div id="composer-wrap"><nostr-composer placeholder="What's up?"></nostr-composer></div>
+      <div class="quiet" id="home-empty" hidden></div>
+      <nostr-feed id="home-feed" limit="30" flush flat></nostr-feed>
+    </div>
+
+    <div class="view" id="view-search"><div class="pad"><nostr-search></nostr-search></div></div>
+    <div class="view" id="view-notifications"><div class="pad"><nostr-notifications></nostr-notifications></div></div>
+    <div class="view" id="view-me"><div class="pad" id="me-pad"><div class="quiet">Log in to see your profile.</div></div></div>
+    <div class="view" id="view-thread"><div class="pad"><nostr-thread id="thread"></nostr-thread></div></div>
+    <div class="view" id="view-person">
+      <div class="pad">
+        <nostr-profile id="person-card"></nostr-profile>
+      </div>
+      <nostr-feed id="person-feed" limit="20" authors="none" flush flat></nostr-feed>
+    </div>
+    <div class="view" id="view-tag"><nostr-feed id="tag-feed" limit="25" hashtag="nostr" flush flat></nostr-feed></div>
+  </main>
+
+  <aside class="rail">
+    <div class="railcard">
+      <h3>Trending</h3>
+      <div id="trends"><span class="foot">listening to the sky…</span></div>
+    </div>
+    <div class="railcard">
+      <h3>Same parts, different sky</h3>
+      <div class="foot">skyline is nostr wearing a bluesky outfit — every component here also powers
+        <a href="https://nostr-client.github.io/zen/">zen</a>,
+        <a href="https://nostr-client.github.io/micro/">micro</a> and
+        <a href="https://nostr-client.github.io/monty/">monty</a>. Swap the CSS tokens, get a new client.</div>
+    </div>
+    <div class="foot">
+      <a href="https://nostr-client.github.io/">nostr-client</a> · no build · verified events · AGPL
+    </div>
+  </aside>
+</div>
+
+<div class="bottombar" id="bottombar">
+  <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></button>
+  <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg></button>
+  <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></button>
+  <button data-view="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></button>
+</div>
+
+<script type="module">
+  // hardened pool before components load
+  {
+    const { Pool } = await import('https://nostr-client.github.io/pool/pool.js')
+    const { withVerify } = await import('https://nostr-client.github.io/verify/verify.js')
+    const { withCache } = await import('https://nostr-client.github.io/cache/cache.js')
+    globalThis.__nostrClientPool = withCache(withVerify(new Pool()))
+  }
+  import('https://nostr-client.github.io/reactions/reactions.js')
+  await Promise.all([
+    'login/login.js', 'composer/composer.js', 'feed/feed.js', 'thread/thread.js',
+    'notifications/notifications.js', 'search/search.js', 'contacts/contacts.js',
+    'profile/profile.js', 'profile-editor/profile-editor.js',
+  ].map((path) => import('https://nostr-client.github.io/' + path)))
+  const { parseRefs } = await import('https://nostr-client.github.io/thread/thread.js')
+  const { defaultPool } = await import('https://nostr-client.github.io/pool/pool.js')
+
+  const $ = (id) => document.getElementById(id)
+  const HEX = /^[0-9a-f]{64}$/
+
+  // ------------------------------------------------------------- routing
+  const TITLES = { search: 'Search', notifications: 'Notifications', me: 'Profile',
+    thread: 'Thread', person: 'Profile', tag: '' }
+  const navs = [...document.querySelectorAll('#nav button'), ...document.querySelectorAll('#bottombar button')]
+  let currentTab = 'home'
+
+  function show(view, { push = true, hash = '', title } = {}) {
+    for (const b of navs) b.classList.toggle('active', b.dataset.view === view)
+    for (const v of document.querySelectorAll('.view')) {
+      v.classList.toggle('active', v.id === 'view-' + view)
+    }
+    const overlay = ['thread', 'person', 'tag'].includes(view)
+    $('tabs').style.display = view === 'home' ? '' : 'none'
+    $('viewbar').hidden = view === 'home'
+    $('back').style.visibility = overlay ? 'visible' : 'hidden'
+    $('viewtitle').textContent = title ?? TITLES[view] ?? ''
+    if (push) history.pushState({}, '', hash ? '#' + hash : location.pathname)
+    scrollTo(0, 0)
+  }
+
+  function route(hash) {
+    const [kind, value] = hash.split('/')
+    if (kind === 'note' && HEX.test(value)) {
+      $('thread').setAttribute('event-id', value)
+      show('thread', { push: false })
+    } else if (kind === 'person' && HEX.test(value)) {
+      $('person-card').setAttribute('pubkey', value)
+      $('person-feed').setAttribute('authors', value)
+      show('person', { push: false })
+    } else if (kind === 'tag' && value) {
+      $('tag-feed').setAttribute('hashtag', value)
+      show('tag', { push: false, title: '#' + decodeURIComponent(value) })
+    } else {
+      show(currentTab, { push: false })
+    }
+  }
+
+  for (const b of navs) b.onclick = () => { currentTab = b.dataset.view; show(currentTab) }
+  $('back').onclick = () => history.back()
+  addEventListener('popstate', () => route(location.hash.slice(1)))
+
+  document.addEventListener('nostr:note-click', (e) => {
+    const target = e.detail.targetId ?? parseRefs(e.detail.event).root ?? e.detail.event.id
+    $('thread').setAttribute('event-id', target)
+    show('thread', { hash: 'note/' + target })
+  })
+  document.addEventListener('nostr:profile-click', (e) => {
+    e.preventDefault()
+    $('person-card').setAttribute('pubkey', e.detail.pubkey)
+    $('person-feed').setAttribute('authors', e.detail.pubkey)
+    show('person', { hash: 'person/' + e.detail.pubkey })
+  })
+  document.addEventListener('nostr:hashtag-click', (e) => {
+    $('tag-feed').setAttribute('hashtag', e.detail.tag)
+    show('tag', { hash: 'tag/' + e.detail.tag, title: '#' + e.detail.tag })
+  })
+  if (location.hash) route(location.hash.slice(1))
+
+  // -------------------------------------------------- home tabs + composer
+  const tabs = document.querySelectorAll('#tabs button')
+  const homeFeed = $('home-feed')
+  const homeEmpty = $('home-empty')
+  let follows = null
+  let mode = 'discover'
+
+  async function setMode(next) {
+    mode = next
+    for (const t of tabs) t.classList.toggle('active', t.dataset.mode === mode)
+    if (mode === 'discover') {
+      homeEmpty.hidden = true; homeFeed.hidden = false
+      homeFeed.removeAttribute('authors')
+      return
+    }
+    if (!window.nostrPubkey) {
+      homeEmpty.textContent = 'Sign in to see posts from people you follow.'
+      homeEmpty.hidden = false; homeFeed.hidden = true
+      return
+    }
+    if (!follows) {
+      const contacts = await defaultPool().get({ kinds: [3], authors: [window.nostrPubkey] })
+      follows = (contacts?.tags ?? []).filter((t) => t[0] === 'p' && HEX.test(t[1] ?? '')).map((t) => t[1])
+    }
+    if (follows.length) {
+      homeEmpty.hidden = true; homeFeed.hidden = false
+      homeFeed.setAttribute('authors', follows.slice(0, 500).join(','))
+    } else {
+      homeEmpty.textContent = "You're not following anyone yet — find people in Discover."
+      homeEmpty.hidden = false; homeFeed.hidden = true
+    }
+  }
+  for (const t of tabs) t.onclick = () => setMode(t.dataset.mode)
+  window.addEventListener('nostr:login', () => { follows = null; refreshMe(); if (mode === 'following') setMode(mode) })
+  window.addEventListener('nostr:logout', () => { follows = null; refreshMe(); if (mode === 'following') setMode(mode) })
+  window.addEventListener('nostr:contacts-changed', () => { follows = null; if (mode === 'following') setMode(mode) })
+
+  const wrap = $('composer-wrap')
+  function openComposer() {
+    currentTab = 'home'; show('home')
+    wrap.classList.add('open')
+    $('prompt').style.display = 'none'
+    wrap.querySelector('nostr-composer').shadowRoot?.getElementById('text')?.focus()
+  }
+  $('prompt').onclick = openComposer
+  $('newpost').onclick = openComposer
+  window.addEventListener('nostr:published', () => {
+    wrap.classList.remove('open')
+    $('prompt').style.display = ''
+  })
+
+  // ------------------------------------------------------------- profile
+  function refreshMe() {
+    const pad = $('me-pad')
+    pad.innerHTML = ''
+    if (!window.nostrPubkey) {
+      const q = document.createElement('div')
+      q.className = 'quiet'
+      q.textContent = 'Sign in to see your profile.'
+      pad.append(q)
+      return
+    }
+    const card = document.createElement('nostr-profile')
+    card.setAttribute('pubkey', window.nostrPubkey)
+    const editor = document.createElement('nostr-profile-editor')
+    editor.style.marginTop = '1rem'
+    pad.append(card, editor)
+  }
+  refreshMe()
+
+  // ------------------------------------------------------------ trending
+  const tagCounts = new Map()
+  defaultPool().subscribe([{ kinds: [1], limit: 150 }], {
+    onEvent: (ev) => {
+      for (const t of ev.tags) {
+        if (t[0] === 't' && t[1] && t[1].length < 25) {
+          const tag = t[1].toLowerCase()
+          tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+        }
+      }
+    },
+  })
+  setInterval(() => {
+    const top = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+    if (!top.length) return
+    const trends = $('trends')
+    trends.innerHTML = ''
+    for (const [tag, count] of top) {
+      const a = document.createElement('a')
+      a.className = 'trend'
+      a.href = '#tag/' + tag
+      const t = document.createElement('span')
+      t.className = 't'
+      t.textContent = '#' + tag
+      const c = document.createElement('span')
+      c.className = 'c'
+      c.textContent = count + ' posts'
+      a.append(t, c)
+      a.onclick = (e) => {
+        e.preventDefault()
+        $('tag-feed').setAttribute('hashtag', tag)
+        show('tag', { hash: 'tag/' + tag, title: '#' + tag })
+      }
+      trends.append(a)
+    }
+  }, 3000)
+</script>
+</body>
+</html>
