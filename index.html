@@ -75,6 +75,7 @@
   .viewbar .back { font: inherit; border: none; background: none; cursor: pointer;
     font-size: 1.2rem; color: var(--nc-ink); padding: 0 .2rem; border-radius: 999px; }
   .viewbar .back:hover { background: var(--nc-inset); }
+  .viewbar[hidden] { display: none; }
   .view { display: none; } .view.active { display: block; }
   .pad { padding: 1rem; }
   .prompt { display: flex; gap: .8rem; align-items: center; padding: .9rem 1rem;
@@ -336,19 +337,24 @@
   refreshMe()
 
   // ------------------------------------------------------------ trending
-  const tagCounts = new Map()
+  const STOP = new Set(['the','and','for','you','with','this','that','are','not','all','from','was','list','have'])
+  const tagAuthors = new Map() // tag -> Set<pubkey>
   defaultPool().subscribe([{ kinds: [1], limit: 150 }], {
     onEvent: (ev) => {
       for (const t of ev.tags) {
-        if (t[0] === 't' && t[1] && t[1].length < 25) {
+        if (t[0] === 't' && t[1]) {
           const tag = t[1].toLowerCase()
-          tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+          if (tag.length < 3 || tag.length > 25 || STOP.has(tag)) continue
+          if (!tagAuthors.has(tag)) tagAuthors.set(tag, new Set())
+          tagAuthors.get(tag).add(ev.pubkey)
         }
       }
     },
   })
   setInterval(() => {
-    const top = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+    // rank by unique authors so one spammer can't own Trending
+    const top = [...tagAuthors.entries()].map(([tag, who]) => [tag, who.size])
+      .filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)
     if (!top.length) return
     const trends = $('trends')
     trends.innerHTML = ''
@@ -361,7 +367,7 @@
       t.textContent = '#' + tag
       const c = document.createElement('span')
       c.className = 'c'
-      c.textContent = count + ' posts'
+      c.textContent = count + ' people posting'
       a.append(t, c)
       a.onclick = (e) => {
         e.preventDefault()
