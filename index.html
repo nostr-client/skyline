@@ -192,13 +192,8 @@
 </div>
 
 <script type="module">
-  // hardened pool before components load
-  {
-    const { Pool } = await import('https://nostr-client.github.io/pool/pool.js')
-    const { withVerify } = await import('https://nostr-client.github.io/verify/verify.js')
-    const { withCache } = await import('https://nostr-client.github.io/cache/cache.js')
-    globalThis.__nostrClientPool = withCache(withVerify(new Pool()))
-  }
+  // hardened default pool: verified events, local cache, saved relays
+  await import('https://nostr-client.github.io/setup/setup.js')
   import('https://nostr-client.github.io/reactions/reactions.js')
   await import('https://nostr-client.github.io/wallet/wallet.js') // ₿ under the blue sky
   await Promise.all([
