@@ -370,10 +370,16 @@
   // A rough figure, so you know roughly what you can tip without leaving the
   // feed. The exact number, and the network, live on the Wallet page.
   {
-    const { formatSatsShort, tipWallet } = await import('https://nostr-client.github.io/wallet/wallet.js')
+    const walletMod = await import('https://nostr-client.github.io/wallet/wallet.js')
+    const { tipWallet } = walletMod
+    // Components are cached independently here, so a browser can hold an older
+    // wallet.js than this page expects. Degrade instead of throwing on every
+    // balance update.
+    const short = walletMod.formatSatsShort ??
+      ((n) => (n >= 1_000_000 ? Math.round(n / 1_000_000) + 'M' : n >= 1_000 ? Math.round(n / 1_000) + 'k' : String(n)))
     const chips = [$('navbal'), $('barbal')]
     const paint = (sats) => {
-      const text = formatSatsShort(sats)
+      const text = short(sats)
       for (const chip of chips) {
         chip.textContent = text
         chip.title = sats.toLocaleString() + ' sats'
