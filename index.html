@@ -237,7 +237,6 @@
     'notifications/notifications.js', 'search/search.js', 'contacts/contacts.js',
     'profile/profile.js', 'profile-editor/profile-editor.js',
   ].map((path) => import('https://nostr-client.github.io/' + path)))
-  const { parseRefs } = await import('https://nostr-client.github.io/thread/thread.js')
   const { defaultPool } = await import('https://nostr-client.github.io/pool/pool.js')
 
   const $ = (id) => document.getElementById(id)
@@ -284,8 +283,13 @@
   $('back').onclick = () => history.back()
   addEventListener('popstate', () => route(location.hash.slice(1)))
 
+  globalThis.__nostrClientNoteUrl = (id) => location.origin + location.pathname + '#note/' + id
+
   document.addEventListener('nostr:note-click', (e) => {
-    const target = e.detail.targetId ?? parseRefs(e.detail.event).root ?? e.detail.event.id
+    // focus the note that was actually clicked, so its own id lands in the URL
+    // and is shareable. <nostr-thread> renders the ancestor chain above it,
+    // so collapsing to the thread root here only threw away precision.
+    const target = e.detail.targetId ?? e.detail.event.id
     $('thread').setAttribute('event-id', target)
     show('thread', { hash: 'note/' + target })
   })
