@@ -241,7 +241,7 @@
         <nostr-composer placeholder="What's up?" button-label="Post"></nostr-composer>
       </div>
       <div class="quiet" id="home-empty" hidden></div>
-      <nostr-feed id="home-feed" limit="30" flush flat batch-live></nostr-feed>
+      <nostr-feed id="home-feed" limit="30" flush flat batch-live hide-json></nostr-feed>
     </div>
 
     <div class="view" id="view-search"><div class="pad"><nostr-search></nostr-search></div></div>
@@ -258,7 +258,7 @@
       </div>
       <nostr-feed id="person-feed" limit="20" authors="none" flush flat></nostr-feed>
     </div>
-    <div class="view" id="view-tag"><nostr-feed id="tag-feed" limit="25" hashtag="nostr" flush flat></nostr-feed></div>
+    <div class="view" id="view-tag"><nostr-feed id="tag-feed" limit="25" hashtag="nostr" flush flat hide-json></nostr-feed></div>
   </main>
 
   <aside class="rail">
