@@ -97,7 +97,13 @@
   :focus-visible { outline: 2px solid var(--nc-accent-text); outline-offset: 2px; border-radius: 6px; }
   .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px;
     padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  .offline { background: #fdeaea; color: #a33; font-size: .85rem;
+  #composer-wrap { position: relative; }
+  .composer-x { position: absolute; top: .35rem; right: .5rem; z-index: 2;
+    font: inherit; font-size: 1rem; line-height: 1; cursor: pointer; border: none;
+    background: none; color: var(--nc-faint); min-width: 44px; min-height: 44px;
+    border-radius: 999px; }
+  .composer-x:hover { background: var(--nc-inset); color: var(--nc-ink); }
+  .offline { background: #fdeaea; color: #8a2020; font-size: .85rem;
     padding: .6rem 1rem; border-bottom: 1px solid #f3cfcf; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important;
@@ -230,7 +236,10 @@
       <div class="prompt" id="prompt">
         <span class="fake">What's up?</span><button class="btn">Post</button>
       </div>
-      <div id="composer-wrap"><nostr-composer placeholder="What's up?" button-label="Post"></nostr-composer></div>
+      <div id="composer-wrap">
+        <button class="composer-x" id="composer-cancel" aria-label="Close composer">✕</button>
+        <nostr-composer placeholder="What's up?" button-label="Post"></nostr-composer>
+      </div>
       <div class="quiet" id="home-empty" hidden></div>
       <nostr-feed id="home-feed" limit="30" flush flat batch-live></nostr-feed>
     </div>
@@ -328,7 +337,10 @@
   const TAB_VIEWS = ['home', 'search', 'notifications', 'wallet', 'me']
   function route(hash) {
     const [kind, value] = hash.split('/')
-    if (TAB_VIEWS.includes(kind) && !value) {
+    if (!hash) {
+      currentTab = 'home'
+      show('home', { push: false })
+    } else if (TAB_VIEWS.includes(kind) && !value) {
       currentTab = kind
       show(kind, { push: false })
     } else if (kind === 'note' && HEX.test(value)) {
@@ -434,6 +446,14 @@
     openComposer()
     document.querySelector('#composer-wrap nostr-composer')?.insert?.(e.detail.text)
   })
+  function closeComposer() {
+    wrap.classList.remove('open')
+    $('prompt').style.display = ''
+  }
+  $('composer-cancel').onclick = closeComposer
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && wrap.classList.contains('open')) closeComposer()
+  })
   window.addEventListener('nostr:published', () => {
     wrap.classList.remove('open')
     $('prompt').style.display = ''
@@ -444,7 +464,6 @@
   // feed. The exact number, and the network, live on the Wallet page.
   {
     const walletMod = await import('https://nostr-client.github.io/wallet/wallet.js')
-    const { tipWallet } = walletMod
     // Components are cached independently here, so a browser can hold an older
     // wallet.js than this page expects. Degrade instead of throwing on every
     // balance update.
@@ -466,14 +485,24 @@
     let inFlight = false
     async function refreshBalance() {
       if (!window.nostrPubkey) { clear(); return }
-      if (inFlight) return
+      if (inFlight || document.visibilityState !== 'visible') return
+      // Read the balance from the explorer using an address already derived on
+      // this device. Calling tipWallet() here would import ~250KB of signing
+      // libs and MINT a hot key for a NIP-07 user who never opened the wallet —
+      // undoing the lazy-boot gating in <nostr-wallet>. No address yet means
+      // the user has not opened the wallet, so there is nothing to show.
+      const addr = walletMod.knownAddress?.()
+      if (!addr) { clear(); return }
       inFlight = true
       try {
-        const { total } = await (await tipWallet()).balance()
+        const total = await walletMod.addressBalance(addr)
         if (window.nostrPubkey) paint(total)
       } catch { /* offline or rate limited — keep whatever is shown */ }
       finally { inFlight = false }
     }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshBalance()
+    })
     // the wallet card broadcasts its own balance; free updates while it's open
     window.addEventListener('nostr:wallet-balance', (e) => {
       if (window.nostrPubkey) paint(e.detail.total)
@@ -528,7 +557,19 @@
   // top six changed — which also stole focus from anyone tabbing through it.
   const TAG_CAP = 300
   const tagAuthors = new Map() // tag -> { who: Set<pubkey>, seen: ms }
-  defaultPool().subscribe([{ kinds: [1], limit: 150 }], {
+  const railVisible = () => matchMedia('(min-width: 1101px)').matches
+  let trendSub = null
+  let trendTimer = null
+
+  function stopTrending() {
+    trendSub?.close?.(); trendSub = null
+    clearInterval(trendTimer); trendTimer = null
+    tagAuthors.clear()
+  }
+
+  function startTrending() {
+    if (trendSub) return
+    trendSub = defaultPool().subscribe([{ kinds: [1], limit: 150 }], {
     onEvent: (ev) => {
       for (const t of ev.tags) {
         if (t[0] === 't' && t[1]) {
@@ -546,9 +587,12 @@
         for (const [tag] of stale.slice(0, tagAuthors.size - TAG_CAP)) tagAuthors.delete(tag)
       }
     },
-  })
+    })
+    trendTimer = setInterval(paintTrends, 8000)
+  }
+
   let lastTrend = ''
-  setInterval(() => {
+  function paintTrends() {
     // rank by unique authors so one spammer can't own Trending
     const top = [...tagAuthors.entries()].map(([tag, e]) => [tag, e.who.size])
       .filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)
@@ -579,7 +623,13 @@
       }
       trends.append(a)
     }
-  }, 8000)
+  }
+
+  // only run it when the panel it feeds is actually on screen
+  if (railVisible()) startTrending()
+  matchMedia('(min-width: 1101px)').addEventListener('change', (e) => {
+    if (e.matches) startTrending(); else stopTrending()
+  })
 </script>
 </body>
 </html>
