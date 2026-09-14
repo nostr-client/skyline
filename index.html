@@ -84,6 +84,16 @@
   .side nav button:hover { background: var(--nc-inset); }
   .side nav button.active { font-weight: 700; }
   .side nav button svg { width: 1.5em; height: 1.5em; flex: none; }
+  .side nav button .bal { margin-left: auto; font-size: .8rem; font-weight: 600;
+    color: var(--nc-accent); background: var(--nc-accent-soft); border-radius: 999px;
+    padding: .15em .6em; font-variant-numeric: tabular-nums; }
+  /* an empty wallet shouldn't look like a notification */
+  .side nav button .bal.zero { color: var(--nc-faint); background: var(--nc-inset); }
+  .bottombar .hasbal { position: relative; }
+  .bottombar .hasbal .bal { position: absolute; top: 0; left: 50%; transform: translateX(.35rem);
+    font-size: .58rem; font-weight: 700; line-height: 1; color: var(--nc-accent-ink);
+    background: var(--nc-accent); border-radius: 999px; padding: .2em .4em;
+    font-variant-numeric: tabular-nums; }
   .side nav button.active svg { stroke-width: 2.6; }
   .newpost { font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer;
     background: var(--nc-accent); color: #fff; border: none; border-radius: 999px;
@@ -162,7 +172,7 @@
       <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>Home</button>
       <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>Search</button>
       <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Notifications</button>
-      <button data-view="wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg>Wallet</button>
+      <button data-view="wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg>Wallet<span class="bal" id="navbal" hidden></span></button>
       <button data-view="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Profile</button>
     </nav>
     <button class="newpost" id="newpost">New Post</button>
@@ -223,7 +233,7 @@
   <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></button>
   <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg></button>
   <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></button>
-  <button data-view="wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg></button>
+  <button data-view="wallet" class="hasbal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg><span class="bal" id="barbal" hidden></span></button>
   <button data-view="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></button>
 </div>
 
@@ -355,6 +365,45 @@
     wrap.classList.remove('open')
     $('prompt').style.display = ''
   })
+
+  // ------------------------------------------ wallet balance in the nav
+  // A rough figure, so you know roughly what you can tip without leaving the
+  // feed. The exact number, and the network, live on the Wallet page.
+  {
+    const { formatSatsShort, tipWallet } = await import('https://nostr-client.github.io/wallet/wallet.js')
+    const chips = [$('navbal'), $('barbal')]
+    const paint = (sats) => {
+      const text = formatSatsShort(sats)
+      for (const chip of chips) {
+        chip.textContent = text
+        chip.title = sats.toLocaleString() + ' sats'
+        chip.classList.toggle('zero', sats === 0)
+        // the bottom-bar pill is a badge: an empty wallet isn't news
+        chip.hidden = chip.id === 'barbal' && sats === 0
+      }
+    }
+    const clear = () => { for (const chip of chips) chip.hidden = true }
+
+    let inFlight = false
+    async function refreshBalance() {
+      if (!window.nostrPubkey) { clear(); return }
+      if (inFlight) return
+      inFlight = true
+      try {
+        const { total } = await (await tipWallet()).balance()
+        if (window.nostrPubkey) paint(total)
+      } catch { /* offline or rate limited — keep whatever is shown */ }
+      finally { inFlight = false }
+    }
+    // the wallet card broadcasts its own balance; free updates while it's open
+    window.addEventListener('nostr:wallet-balance', (e) => {
+      if (window.nostrPubkey) paint(e.detail.total)
+    })
+    window.addEventListener('nostr:login', refreshBalance)
+    window.addEventListener('nostr:logout', clear)
+    refreshBalance()
+    setInterval(refreshBalance, 60_000)
+  }
 
   // ------------------------------------------------------------- profile
   function refreshMe() {
