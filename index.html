@@ -2,8 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='85'>🦋</text></svg>">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://nostr-client.github.io https://esm.sh 'unsafe-inline'; style-src 'self' https://nostr-client.github.io 'unsafe-inline'; img-src https: data: blob:; media-src https: blob:; font-src 'self' data:; connect-src https: wss:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
+<link rel="preconnect" href="https://esm.sh" crossorigin>
+<link rel="dns-prefetch" href="https://esm.sh">
+<link rel="modulepreload" href="https://nostr-client.github.io/setup/setup.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/pool/pool.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/cache/cache.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/verify/verify.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/note/note.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/feed/feed.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/thread/thread.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/composer/composer.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/login/login.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/search/search.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/notifications/notifications.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/contacts/contacts.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/profile/profile.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/profile-editor/profile-editor.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/relay-manager/relay-manager.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/reactions/reactions.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/wallet/wallet.js">
+<link rel="modulepreload" href="https://nostr-client.github.io/nip19/nip19.js">
 <link rel="canonical" href="https://nostr-client.github.io/skyline/">
 <title>skyline — same parts, different sky</title>
 <meta name="description" content="A bluesky-flavored nostr client: real posts, threads, search and on-chain bitcoin tips, in one buildless HTML file. Same nostr-client parts, different sky.">
@@ -58,9 +81,10 @@
     --nc-inset: #f1f3f5;
     --nc-ink: #0b0f14;
     --nc-soft: #42576c;
-    --nc-faint: #7a8fa6;
+    --nc-faint: #5b7189;        /* was #7a8fa6 — 3.33:1 on white, used for real content */
     --nc-line: #d4dbe2;
-    --nc-accent: #1083fe;
+    --nc-accent: #1083fe;       /* brand mark: underlines, borders, non-text */
+    --nc-accent-text: #0a63c9;  /* same hue at 5.1:1 — for text and button fills */
     --nc-accent-ink: #ffffff;
     --nc-accent-soft: #e7f1ff;
     --nc-radius: 16px;
@@ -70,6 +94,15 @@
     font-size: 15px;
   }
   body { margin: 0; }
+  :focus-visible { outline: 2px solid var(--nc-accent-text); outline-offset: 2px; border-radius: 6px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px;
+    padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .offline { background: #fdeaea; color: #a33; font-size: .85rem;
+    padding: .6rem 1rem; border-bottom: 1px solid #f3cfcf; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important;
+      scroll-behavior: auto !important; }
+  }
   .app { display: grid; grid-template-columns: 15rem 600px minmax(0, 20rem);
     justify-content: center; gap: 0 1.6rem; min-height: 100vh; }
 
@@ -85,18 +118,18 @@
   .side nav button.active { font-weight: 700; }
   .side nav button svg { width: 1.5em; height: 1.5em; flex: none; }
   .side nav button .bal { margin-left: auto; font-size: .8rem; font-weight: 600;
-    color: var(--nc-accent); background: var(--nc-accent-soft); border-radius: 999px;
+    color: var(--nc-accent-text); background: var(--nc-accent-soft); border-radius: 999px;
     padding: .15em .6em; font-variant-numeric: tabular-nums; }
   /* an empty wallet shouldn't look like a notification */
   .side nav button .bal.zero { color: var(--nc-faint); background: var(--nc-inset); }
   .bottombar .hasbal { position: relative; }
   .bottombar .hasbal .bal { position: absolute; top: 0; left: 50%; transform: translateX(.35rem);
     font-size: .58rem; font-weight: 700; line-height: 1; color: var(--nc-accent-ink);
-    background: var(--nc-accent); border-radius: 999px; padding: .2em .4em;
+    background: var(--nc-accent-text); border-radius: 999px; padding: .2em .4em;
     font-variant-numeric: tabular-nums; }
   .side nav button.active svg { stroke-width: 2.6; }
   .newpost { font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer;
-    background: var(--nc-accent); color: #fff; border: none; border-radius: 999px;
+    background: var(--nc-accent-text); color: #fff; border: none; border-radius: 999px;
     padding: .75em 0; margin: .8rem .9rem 1rem 0; }
   .newpost:hover { filter: brightness(1.06); }
   .side .me { padding: .4rem .9rem .4rem 0; }
@@ -127,7 +160,7 @@
   .prompt { display: flex; gap: .8rem; align-items: center; padding: .9rem 1rem;
     border-bottom: 1px solid var(--nc-line); cursor: text; }
   .prompt .fake { color: var(--nc-faint); flex: 1; }
-  .prompt .btn { background: var(--nc-accent); color: #fff; font-weight: 700;
+  .prompt .btn { background: var(--nc-accent-text); color: #fff; font-weight: 700;
     border: none; border-radius: 999px; padding: .45em 1.2em; font-size: .95rem; }
   #composer-wrap { display: none; border-bottom: 1px solid var(--nc-line); padding: .8rem 1rem; }
   #composer-wrap.open { display: block; }
@@ -155,12 +188,16 @@
     .center { border: none; }
     .bottombar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
       background: rgb(255 255 255 / 94%); backdrop-filter: blur(10px);
-      border-top: 1px solid var(--nc-line); justify-content: space-around; padding: .35rem 0 .6rem; }
+      border-top: 1px solid var(--nc-line); justify-content: space-around;
+      /* clear the iPhone home-indicator strip */
+      padding: .35rem 0 calc(.6rem + env(safe-area-inset-bottom)); }
     .bottombar button { font: inherit; border: none; background: none; color: var(--nc-ink);
-      padding: .4rem .9rem; cursor: pointer; border-radius: 999px; }
+      cursor: pointer; border-radius: 999px;
+      /* 44px minimum touch target */
+      min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: .4rem .9rem; }
     .bottombar button svg { width: 1.6em; height: 1.6em; }
-    .bottombar button.active { color: var(--nc-accent); }
-    body { padding-bottom: 4.2rem; }
+    .bottombar button.active { color: var(--nc-accent-text); }
+    body { padding-bottom: calc(4.2rem + env(safe-area-inset-bottom)); }
   }
 </style>
 </head>
@@ -168,7 +205,7 @@
 <div class="app">
   <aside class="side">
     <a class="logo" href="https://github.com/nostr-client/skyline" title="skyline">🦋</a>
-    <nav id="nav">
+    <nav id="nav" aria-label="Primary">
       <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>Home</button>
       <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>Search</button>
       <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Notifications</button>
@@ -180,9 +217,10 @@
   </aside>
 
   <main class="center">
-    <div class="tabs" id="tabs">
-      <button data-mode="following">Following</button>
-      <button data-mode="discover" class="active">Discover</button>
+    <h1 class="visually-hidden">skyline</h1>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Feed">
+      <button role="tab" aria-selected="false" data-mode="following">Following</button>
+      <button role="tab" aria-selected="true" data-mode="discover" class="active">Discover</button>
     </div>
     <div class="viewbar" id="viewbar" hidden>
       <button class="back" id="back">←</button><span id="viewtitle"></span>
@@ -194,13 +232,16 @@
       </div>
       <div id="composer-wrap"><nostr-composer placeholder="What's up?" button-label="Post"></nostr-composer></div>
       <div class="quiet" id="home-empty" hidden></div>
-      <nostr-feed id="home-feed" limit="30" flush flat></nostr-feed>
+      <nostr-feed id="home-feed" limit="30" flush flat batch-live></nostr-feed>
     </div>
 
     <div class="view" id="view-search"><div class="pad"><nostr-search></nostr-search></div></div>
     <div class="view" id="view-notifications"><div class="pad"><nostr-notifications></nostr-notifications></div></div>
     <div class="view" id="view-wallet"><div class="pad"><nostr-wallet></nostr-wallet></div></div>
-    <div class="view" id="view-me"><div class="pad" id="me-pad"><div class="quiet">Log in to see your profile.</div></div></div>
+    <div class="view" id="view-me"><div class="pad">
+      <div id="me-login"></div>
+      <div id="me-pad"><div class="quiet">Log in to see your profile.</div></div>
+    </div></div>
     <div class="view" id="view-thread"><div class="pad"><nostr-thread id="thread"></nostr-thread></div></div>
     <div class="view" id="view-person">
       <div class="pad">
@@ -229,13 +270,13 @@
   </aside>
 </div>
 
-<div class="bottombar" id="bottombar">
-  <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></button>
-  <button data-view="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg></button>
-  <button data-view="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></button>
-  <button data-view="wallet" class="hasbal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg><span class="bal" id="barbal" hidden></span></button>
-  <button data-view="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></button>
-</div>
+<nav class="bottombar" aria-label="Primary" id="bottombar">
+  <button data-view="home" aria-label="Home" class="active"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></button>
+  <button data-view="search" aria-label="Search"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg></button>
+  <button data-view="notifications" aria-label="Notifications"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></button>
+  <button data-view="wallet" aria-label="Wallet" class="hasbal"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h.01"/><path d="M3 9h18"/></svg><span class="bal" id="barbal" hidden></span></button>
+  <button data-view="me" aria-label="Profile"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></button>
+</nav>
 
 <script type="module">
   // hardened default pool: verified events, local cache, saved relays
@@ -259,7 +300,11 @@
   let currentTab = 'home'
 
   function show(view, { push = true, hash = '', title } = {}) {
-    for (const b of navs) b.classList.toggle('active', b.dataset.view === view)
+    for (const b of navs) {
+      const on = b.dataset.view === view
+      b.classList.toggle('active', on)
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current')
+    }
     for (const v of document.querySelectorAll('.view')) {
       v.classList.toggle('active', v.id === 'view-' + view)
     }
@@ -268,13 +313,25 @@
     $('viewbar').hidden = view === 'home'
     $('back').style.visibility = overlay ? 'visible' : 'hidden'
     $('viewtitle').textContent = title ?? TITLES[view] ?? ''
-    if (push) history.pushState({}, '', hash ? '#' + hash : location.pathname)
-    scrollTo(0, 0)
+    if (push) {
+      // remember where we were so Back can put the reader back
+      history.replaceState({ ...history.state, scrollY: scrollY }, '')
+      history.pushState({}, '', hash ? '#' + hash : location.pathname)
+      scrollTo(0, 0)
+    } else {
+      // restoring from popstate: keep the reader's place instead of jumping to top
+      const y = history.state?.scrollY
+      requestAnimationFrame(() => scrollTo(0, typeof y === 'number' ? y : 0))
+    }
   }
 
+  const TAB_VIEWS = ['home', 'search', 'notifications', 'wallet', 'me']
   function route(hash) {
     const [kind, value] = hash.split('/')
-    if (kind === 'note' && HEX.test(value)) {
+    if (TAB_VIEWS.includes(kind) && !value) {
+      currentTab = kind
+      show(kind, { push: false })
+    } else if (kind === 'note' && HEX.test(value)) {
       $('thread').setAttribute('event-id', value)
       show('thread', { push: false })
     } else if (kind === 'person' && HEX.test(value)) {
@@ -282,14 +339,19 @@
       $('person-feed').setAttribute('authors', value)
       show('person', { push: false })
     } else if (kind === 'tag' && value) {
+      let label = value
+      try { label = decodeURIComponent(value) } catch { /* '#tag/%' must not break routing */ }
       $('tag-feed').setAttribute('hashtag', value)
-      show('tag', { push: false, title: '#' + decodeURIComponent(value) })
+      show('tag', { push: false, title: '#' + label })
     } else {
       show(currentTab, { push: false })
     }
   }
 
-  for (const b of navs) b.onclick = () => { currentTab = b.dataset.view; show(currentTab) }
+  for (const b of navs) b.onclick = () => {
+    currentTab = b.dataset.view
+    show(currentTab, { hash: currentTab === 'home' ? '' : currentTab })
+  }
   $('back').onclick = () => history.back()
   addEventListener('popstate', () => route(location.hash.slice(1)))
 
@@ -313,7 +375,9 @@
     $('tag-feed').setAttribute('hashtag', e.detail.tag)
     show('tag', { hash: 'tag/' + e.detail.tag, title: '#' + e.detail.tag })
   })
-  if (location.hash) route(location.hash.slice(1))
+  // route() on boot even without a hash, so the initial view gets its active
+  // and aria-current state from the same code path as every later navigation
+  route(location.hash.slice(1))
 
   // -------------------------------------------------- home tabs + composer
   const tabs = document.querySelectorAll('#tabs button')
@@ -324,7 +388,11 @@
 
   async function setMode(next) {
     mode = next
-    for (const t of tabs) t.classList.toggle('active', t.dataset.mode === mode)
+    for (const t of tabs) {
+      const on = t.dataset.mode === mode
+      t.classList.toggle('active', on)
+      t.setAttribute('aria-selected', String(on))
+    }
     if (mode === 'discover') {
       homeEmpty.hidden = true; homeFeed.hidden = false
       homeFeed.removeAttribute('authors')
@@ -361,6 +429,11 @@
   }
   $('prompt').onclick = openComposer
   $('newpost').onclick = openComposer
+  document.addEventListener('nostr:quote', (e) => {
+    e.preventDefault()
+    openComposer()
+    document.querySelector('#composer-wrap nostr-composer')?.insert?.(e.detail.text)
+  })
   window.addEventListener('nostr:published', () => {
     wrap.classList.remove('open')
     $('prompt').style.display = ''
@@ -411,6 +484,24 @@
     setInterval(refreshBalance, 60_000)
   }
 
+  // The sidebar (and its <nostr-login>) is display:none below 800px, which left
+  // phones with no way to log in at all — read-only feed, four dead tabs.
+  $('me-login').append(document.createElement('nostr-login'))
+
+  // ------------------------------------------------------------- offline
+  {
+    const strip = document.createElement('div')
+    strip.className = 'offline'
+    strip.setAttribute('role', 'status')
+    strip.textContent = 'You are offline — posts and tips will fail until you reconnect.'
+    strip.hidden = true
+    document.querySelector('main').prepend(strip)
+    const sync = () => { strip.hidden = navigator.onLine }
+    addEventListener('online', sync)
+    addEventListener('offline', sync)
+    sync()
+  }
+
   // ------------------------------------------------------------- profile
   function refreshMe() {
     const pad = $('me-pad')
@@ -432,25 +523,43 @@
 
   // ------------------------------------------------------------ trending
   const STOP = new Set(['the','and','for','you','with','this','that','are','not','all','from','was','list','have'])
-  const tagAuthors = new Map() // tag -> Set<pubkey>
+  // This is the global kind-1 firehose. Left unbounded it grew a tag map and a
+  // per-author Set forever, and repainted the DOM every 3s whether or not the
+  // top six changed — which also stole focus from anyone tabbing through it.
+  const TAG_CAP = 300
+  const tagAuthors = new Map() // tag -> { who: Set<pubkey>, seen: ms }
   defaultPool().subscribe([{ kinds: [1], limit: 150 }], {
     onEvent: (ev) => {
       for (const t of ev.tags) {
         if (t[0] === 't' && t[1]) {
           const tag = t[1].toLowerCase()
           if (tag.length < 3 || tag.length > 25 || STOP.has(tag)) continue
-          if (!tagAuthors.has(tag)) tagAuthors.set(tag, new Set())
-          tagAuthors.get(tag).add(ev.pubkey)
+          let entry = tagAuthors.get(tag)
+          if (!entry) { entry = { who: new Set(), seen: 0 }; tagAuthors.set(tag, entry) }
+          if (entry.who.size < 500) entry.who.add(ev.pubkey)
+          entry.seen = Date.now()
         }
+      }
+      if (tagAuthors.size > TAG_CAP) {
+        // evict least-recently-seen tags
+        const stale = [...tagAuthors.entries()].sort((a, b) => a[1].seen - b[1].seen)
+        for (const [tag] of stale.slice(0, tagAuthors.size - TAG_CAP)) tagAuthors.delete(tag)
       }
     },
   })
+  let lastTrend = ''
   setInterval(() => {
     // rank by unique authors so one spammer can't own Trending
-    const top = [...tagAuthors.entries()].map(([tag, who]) => [tag, who.size])
+    const top = [...tagAuthors.entries()].map(([tag, e]) => [tag, e.who.size])
       .filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)
-    if (!top.length) return
     const trends = $('trends')
+    if (!top.length) {
+      if (lastTrend !== 'empty') { lastTrend = 'empty'; trends.textContent = 'nothing trending yet' }
+      return
+    }
+    const signature = top.map(([t, n]) => t + n).join('|')
+    if (signature === lastTrend) return // nothing changed; don't touch the DOM
+    lastTrend = signature
     trends.innerHTML = ''
     for (const [tag, count] of top) {
       const a = document.createElement('a')
@@ -470,7 +579,7 @@
       }
       trends.append(a)
     }
-  }, 3000)
+  }, 8000)
 </script>
 </body>
 </html>
